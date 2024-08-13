@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 class RecommendedCourseScreen extends StatelessWidget {
+  final LatLng _initialPosition = LatLng(37.206821,127.033268); 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,11 +30,14 @@ class RecommendedCourseScreen extends StatelessWidget {
                     color: Colors.grey.shade200,
                     child: Stack(
                       children: [
-                        // 여기서 지도를 추가합니다
+                        // Google Map 추가
                         Positioned.fill(
-                          child: Image.asset(
-                            'assets/images/map.png',
-                            fit: BoxFit.cover,
+                          child: GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: _initialPosition,
+                              zoom: 14.0,
+                            ),
+                            markers: _createMarkers(),
                           ),
                         ),
                         // 경로 표시
@@ -101,6 +107,21 @@ class RecommendedCourseScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Set<Marker> _createMarkers() {
+    return {
+      Marker(
+        markerId: MarkerId('start'),
+        position: _initialPosition,
+        infoWindow: InfoWindow(title: '시작 지점'),
+      ),
+      Marker(
+        markerId: MarkerId('end'),
+        position: LatLng(37.206821,127.033268), // 예시로 설정한 위치
+        infoWindow: InfoWindow(title: '목적지'),
+      ),
+    };
   }
 
   Widget _buildInfoCard(String title, String content) {
