@@ -79,6 +79,8 @@ class UserProfileScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20),
+            _buildProfileEditForm(), // 프로필 수정 폼 추가
+            SizedBox(height: 20),
             ListTile(
               title: Text('이용안내'),
               trailing: Icon(Icons.arrow_forward_ios),
@@ -122,6 +124,50 @@ class UserProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // 프로필 수정 폼
+  Widget _buildProfileEditForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '프로필 수정',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 10),
+        TextFormField(
+          decoration: InputDecoration(
+            labelText: '이메일',
+            border: OutlineInputBorder(),
+          ),
+          initialValue: 'user@example.com', // 초기 이메일 값
+        ),
+        SizedBox(height: 10),
+        TextFormField(
+          decoration: InputDecoration(
+            labelText: '이름',
+            border: OutlineInputBorder(),
+          ),
+          initialValue: '홀란드', // 초기 이름 값
+        ),
+        SizedBox(height: 10),
+        TextFormField(
+          decoration: InputDecoration(
+            labelText: '비밀번호',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+        ),
+        SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            // 저장 버튼 클릭 시 처리 로직
+          },
+          child: Text('저장'),
+        ),
+      ],
     );
   }
 }
