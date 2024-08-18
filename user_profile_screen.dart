@@ -1,18 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지
 
-class UserProfileScreen extends StatelessWidget {
+class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
+
+  @override
+  _UserProfileScreenState createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  late TextEditingController _nameController;
+  String _profileImageUrl = 'assets/images/profile_image.png'; // 기본 프로필 이미지 경로
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: '홀란드'); // 초기 닉네임 설정
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changeProfileImage() async {
+    // 프로필 사진 변경 기능 추가
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        _profileImageUrl = image.path; // 새로운 이미지 경로 설정
+      });
+    }
+  }
+
+  void _logout() async {
+    await FirebaseAuth.instance.signOut(); // 로그아웃
+    Navigator.of(context).pushReplacementNamed('/login'); // 로그인 화면으로 전환
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          '내 프로필',
+          style: TextStyle(color: Colors.black),
+        ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context); // 뒤로가기 버튼 눌렀을 때 메인화면으로 돌아가기
+            Navigator.pop(context); // 뒤로가기 버튼
           },
         ),
         actions: [
@@ -26,85 +70,108 @@ class UserProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Container(
-              decoration: BoxDecoration(
-                color: Color(0xFFB9EF45),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: AssetImage('assets/images/profile_image.png'), // 프로필 이미지 경로
-                      radius: 40,
-                    ),
-                    SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '홀란드',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Lv.3',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(
-                            '계정 관리',
-                            style: TextStyle(
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey[300],
+                  backgroundImage: _profileImageUrl.contains('http')
+                      ? NetworkImage(_profileImageUrl) as ImageProvider
+                      : AssetImage(_profileImageUrl),
                 ),
+                Positioned(
+                  bottom: 0,
+                  right: 10,
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    onPressed: _changeProfileImage, // 프로필 사진 변경
+                    child: Icon(Icons.camera_alt, color: Colors.grey[700]),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _nameController,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: '닉네임을 입력하세요',
               ),
             ),
             SizedBox(height: 20),
-            _buildProfileEditForm(), // 프로필 수정 폼 추가
+            Card(
+              margin: EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: Icon(Icons.edit, color: Colors.grey[700]),
+                title: Text('프로필 편집'),
+                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
+                onTap: () {
+                  // 프로필 편집 화면으로 이동
+                },
+              ),
+            ),
+            Card(
+              margin: EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: Icon(Icons.help_outline, color: Colors.grey[700]),
+                title: Text('도움말 및 지원'),
+                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
+                onTap: () {
+                  // 도움말 화면으로 이동
+                },
+              ),
+            ),
+            Card(
+              margin: EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: Icon(Icons.notifications_outlined, color: Colors.grey[700]),
+                title: Text('알림 설정'),
+                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
+                onTap: () {
+                  // 알림 설정 화면으로 이동
+                },
+              ),
+            ),
+            Card(
+              margin: EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: Icon(Icons.settings_outlined, color: Colors.grey[700]),
+                title: Text('앱 설정'),
+                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
+                onTap: () {
+                  // 설정 화면으로 이동
+                },
+              ),
+            ),
             SizedBox(height: 20),
-            ListTile(
-              title: Text('이용안내'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
+            ElevatedButton(
+              onPressed: _logout, // 로그아웃 기능
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(
+                '로그아웃',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
             ),
-            Divider(),
-            ListTile(
-              title: Text('고객센터'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
-            ),
-            Divider(),
-            ListTile(
-              title: Text('알림설정'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
-            ),
-            Divider(),
-            ListTile(
-              title: Text('환경설정'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {},
-            ),
-            Divider(),
           ],
         ),
       ),
@@ -124,50 +191,6 @@ class UserProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  // 프로필 수정 폼
-  Widget _buildProfileEditForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '프로필 수정',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 10),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: '이메일',
-            border: OutlineInputBorder(),
-          ),
-          initialValue: 'user@example.com', // 초기 이메일 값
-        ),
-        SizedBox(height: 10),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: '이름',
-            border: OutlineInputBorder(),
-          ),
-          initialValue: '홀란드', // 초기 이름 값
-        ),
-        SizedBox(height: 10),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: '비밀번호',
-            border: OutlineInputBorder(),
-          ),
-          obscureText: true,
-        ),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-            // 저장 버튼 클릭 시 처리 로직
-          },
-          child: Text('저장'),
-        ),
-      ],
     );
   }
 }

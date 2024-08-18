@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RecommendedCourseScreen extends StatelessWidget {
-  final LatLng _initialPosition = LatLng(37.206821,127.033268); 
+  final LatLng _initialPosition = LatLng(37.206821,127.033268);
 
   @override
   Widget build(BuildContext context) {
