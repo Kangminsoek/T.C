@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-//ㅇㄴㅁㅇ
+
 class RecommendedCourseScreen extends StatelessWidget {
-  final LatLng _initialPosition = LatLng(37.206821,127.033268);
+  final LatLng _initialPosition = LatLng(37.206821, 127.033268);
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +118,7 @@ class RecommendedCourseScreen extends StatelessWidget {
       ),
       Marker(
         markerId: MarkerId('end'),
-        position: LatLng(37.206821,127.033268), // 예시로 설정한 위치
+        position: LatLng(37.206821, 127.033268), // 예시로 설정한 위치
         infoWindow: InfoWindow(title: '목적지'),
       ),
     };
