@@ -1,6 +1,6 @@
 import 'package:cppick/screen/recommended_course_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AiDateCourseScreen extends StatefulWidget {
   @override
@@ -13,6 +13,7 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
   double _budgetValue = 10;
   late List<int?> _selectedImages;
   String? _selectedAddress;
+  LatLng _selectedLatLng = LatLng(37.5665, 126.9780); // 서울 시청 기준 초기값 설정
 
   @override
   void initState() {
@@ -20,6 +21,7 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
     _selectedImages = List.generate(_selectedOptions.length, (_) => null);
   }
 
+  // 옵션 추가 메서드 정의
   void _addOption() {
     if (_selectedOptions.length < 5) {
       setState(() {
@@ -29,17 +31,22 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
     }
   }
 
+  // 이미지 토글 메서드 정의
+  void _toggleImage(int optionIndex, int imageIndex) {
+    setState(() {
+      if (_selectedImages[optionIndex] == imageIndex) {
+        _selectedImages[optionIndex] = null;
+      } else {
+        _selectedImages[optionIndex] = imageIndex;
+      }
+    });
+  }
+
+  // 옵션 제거 메서드 정의
   void _removeOption(int index) {
     setState(() {
       _selectedOptions.removeAt(index);
       _selectedImages.removeAt(index);
-    });
-  }
-
-  void _toggleImage(int optionIndex, int imageIndex) {
-    setState(() {
-      if (_selectedImages.contains(imageIndex)) return;
-      _selectedImages[optionIndex] = imageIndex;
     });
   }
 
@@ -50,40 +57,45 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
         return Dialog(
           backgroundColor: Colors.black54,
           child: Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            height: 400,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '주소 입력',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: '주소를 입력하세요',
+                Expanded(
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _selectedLatLng,
+                      zoom: 12.0,
+                    ),
+                    onTap: (LatLng latLng) {
+                      setState(() {
+                        _selectedLatLng = latLng;
+                      });
+                    },
+                    markers: {
+                      Marker(
+                        markerId: MarkerId('selected-location'),
+                        position: _selectedLatLng,
+                        draggable: true,
+                        onDragEnd: (LatLng latLng) {
+                          setState(() {
+                            _selectedLatLng = latLng;
+                          });
+                        },
+                      ),
+                    },
                   ),
-                  onSubmitted: (value) {
-                    setState(() {
-                      _selectedAddress = value;
-                    });
-                    Navigator.pop(context);
-                  },
                 ),
-                SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () {
+                    setState(() {
+                      _selectedAddress = '위도: ${_selectedLatLng.latitude}, 경도: ${_selectedLatLng.longitude}';
+                    });
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFFB9EF45),
                   ),
-                  child: Text('확인'),
+                  child: Text('위치 선택'),
                 ),
               ],
             ),
@@ -96,7 +108,15 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
   void _navigateToRecommendedCourseScreen() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => RecommendedCourseScreen()),
+      MaterialPageRoute(
+        builder: (context) => RecommendedCourseScreen(
+          selectedAddress: _selectedAddress,
+          selectedOptions: _selectedOptions,
+          selectedImages: _selectedImages,
+          distanceValue: _distanceValue,
+          budgetValue: _budgetValue,
+        ),
+      ),
     );
   }
 
@@ -167,6 +187,15 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
   }
 
   Widget _buildOptionRow(int optionIndex) {
+    const options = ['먹기', '마시기', '놀기', '보기', '걷기'];
+    const imagePaths = [
+      'assets/images/eat.png',
+      'assets/images/drink.png',
+      'assets/images/play.png',
+      'assets/images/see.png',
+      'assets/images/walk.png',
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -181,78 +210,22 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  GestureDetector(
-                    onTap: () => _toggleImage(optionIndex, 0),
+                children: List.generate(options.length, (index) {
+                  return GestureDetector(
+                    onTap: () => _toggleImage(optionIndex, index),
                     child: Column(
                       children: [
                         Image.asset(
-                          _selectedImages[optionIndex] == 0
+                          _selectedImages[optionIndex] == index
                               ? 'assets/images/heart.png'
-                              : 'assets/images/eat.png',
+                              : imagePaths[index],
                           height: 30,
                         ),
-                        Text('먹기'),
+                        Text(options[index]),
                       ],
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _toggleImage(optionIndex, 1),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          _selectedImages[optionIndex] == 1
-                              ? 'assets/images/heart.png'
-                              : 'assets/images/drink.png',
-                          height: 30,
-                        ),
-                        Text('마시기'),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _toggleImage(optionIndex, 2),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          _selectedImages[optionIndex] == 2
-                              ? 'assets/images/heart.png'
-                              : 'assets/images/play.png',
-                          height: 30,
-                        ),
-                        Text('놀기'),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _toggleImage(optionIndex, 3),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          _selectedImages[optionIndex] == 3
-                              ? 'assets/images/heart.png'
-                              : 'assets/images/see.png',
-                          height: 30,
-                        ),
-                        Text('보기'),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _toggleImage(optionIndex, 4),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          _selectedImages[optionIndex] == 4
-                              ? 'assets/images/heart.png'
-                              : 'assets/images/walk.png',
-                          height: 30,
-                        ),
-                        Text('걷기'),
-                      ],
-                    ),
-                  ),
-                ],
+                  );
+                }),
               ),
             ),
           ),
@@ -274,46 +247,18 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
         children: [
           Text('원하시는 거리와 예산을 선택해주세요.'),
           SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('반경(도보 기준)'),
-              Text('약 ${_distanceValue.toInt()}분(${(_distanceValue * 70).toInt()}m)'),
-            ],
-          ),
-          Slider(
-            value: _distanceValue,
-            min: 5,
-            max: 30,
-            divisions: 5,
-            label: '$_distanceValue분',
-            activeColor: Colors.redAccent, // 레이팅바 색상 변경
-            onChanged: (value) {
-              setState(() {
-                _distanceValue = value;
-              });
-            },
+          _buildSliderRow(
+            '반경(도보 기준)',
+            '약 ${_distanceValue.toInt()}분(${(_distanceValue * 70).toInt()}m)',
+            _distanceValue,
+                (value) => setState(() => _distanceValue = value),
           ),
           SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('예산(1인)'),
-              Text('${_budgetValue.toInt()}만원이내'),
-            ],
-          ),
-          Slider(
-            value: _budgetValue,
-            min: 1,
-            max: 100,
-            divisions: 10,
-            label: '$_budgetValue만원',
-            activeColor: Colors.redAccent, // 레이팅바 색상 변경
-            onChanged: (value) {
-              setState(() {
-                _budgetValue = value;
-              });
-            },
+          _buildSliderRow(
+            '예산(1인)',
+            '${_budgetValue.toInt()}만원이내',
+            _budgetValue,
+                (value) => setState(() => _budgetValue = value),
           ),
           SizedBox(height: 10),
           ElevatedButton(
@@ -332,6 +277,30 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSliderRow(
+      String label, String valueText, double value, ValueChanged<double> onChanged) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label),
+            Text(valueText),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: label == '반경(도보 기준)' ? 5 : 1,
+          max: label == '반경(도보 기준)' ? 30 : 100,
+          divisions: label == '반경(도보 기준)' ? 5 : 10,
+          label: '$value',
+          activeColor: Colors.redAccent,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }
