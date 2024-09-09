@@ -1,20 +1,20 @@
 const express = require('express');
-const axios = require('axios'); // Axios를 사용하여 HTTP 요청을 보냅니다.
+const axios = require('axios'); 
 const uuidAPIKey = require('uuid-apikey');
-const psql = require('./psql'); // PostgreSQL 설정 파일
+const psql = require('./psql'); 
 
 const app = express();
 const router = express.Router();
 
-// 미들웨어 설정 (JSON 파싱)
+
 app.use(express.json());
 
-// 서버 시작
+
 const server = app.listen(3001, () => {
     console.log('Start Server : localhost:3001');
 });
 
-// API 키 생성 예시 (테스트용)
+
 console.log(uuidAPIKey.create());
 
 const key = {
@@ -22,11 +22,11 @@ const key = {
     uuid: 'e23bf292-6f32-42ad-b4e1-cc70cc030a09'
 };
 
-// API 엔드포인트 - 외부 API 호출 및 API 키 인증
+
 app.get('/api/users/:apikey/:type', async (req, res) => {
     const { apikey, type } = req.params;
 
-    // API 키 유효성 검사
+   
     if (!uuidAPIKey.isAPIKey(apikey) || !uuidAPIKey.check(apikey, key.uuid)) {
         return res.status(401).send('apikey is not valid.');
     }
@@ -34,7 +34,7 @@ app.get('/api/users/:apikey/:type', async (req, res) => {
     try {
         let googleApiUrl;
 
-        // 요청한 type에 따라 구글 API의 엔드포인트 결정
+      
         if (type === 'A') {
             googleApiUrl = `https://example.com/api/A?key=${key.apiKey}`; // 실제 구글 API URL로 변경
         } else if (type === 'B') {
