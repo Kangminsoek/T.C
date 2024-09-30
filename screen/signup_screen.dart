@@ -13,8 +13,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _auth = FirebaseAuth.instance;
+  bool _isNameUnique = false; // 중복 체크 결과 저장 변수
 
   Future<void> _signUp() async {
+    if (!_isNameUnique) {
+      _showSnackBar('닉네임 중복 확인을 해주세요.');
+      return;
+    }
+
     try {
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text,
@@ -37,6 +43,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } catch (e) {
       _showSnackBar(e.toString());
     }
+  }
+
+  Future<void> _checkNameUnique() async {
+    // 닉네임 중복 체크 로직 구현 (예: Firestore 등에서 닉네임을 조회)
+    String name = _nameController.text;
+
+    if (name.isEmpty) {
+      _showSnackBar('닉네임을 입력해주세요.');
+      return;
+    }
+
+    // 임시로 모든 닉네임이 사용 가능하다고 가정하는 로직
+    setState(() {
+      _isNameUnique = true;
+    });
+
+    _showSnackBar('사용 가능한 닉네임입니다.');
   }
 
   void _showSnackBar(String message) {
@@ -150,18 +173,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           obscureText: true,
                         ),
                         SizedBox(height: 10),
-                        TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(Icons.person_outline),
-                            hintText: '닉네임을 입력해주세요',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                  prefixIcon: Icon(Icons.person_outline),
+                                  hintText: '닉네임을 입력해주세요',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey.shade100,
+                                ),
+                              ),
                             ),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                          ),
+                            SizedBox(width: 10),
+                            ElevatedButton(
+                              onPressed: _checkNameUnique,
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                                backgroundColor: Colors.grey.shade300,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Text(
+                                '중복 확인',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 30),
                         ElevatedButton(
