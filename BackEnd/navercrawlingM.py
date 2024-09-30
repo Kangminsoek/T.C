@@ -1,4 +1,5 @@
 import re
+import csv
 from geopy.geocoders import Nominatim
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -31,19 +32,36 @@ options.add_argument('window-size=1380,900')
 driver = webdriver.Chrome(options=options)
 
 # 대기 시간 설정
-driver.implicitly_wait(3)
+driver.implicitly_wait(4)
 
 # 네이버 지도 URL로 이동
-search_query = '카페'
+search_query = '음식점'
 search_url = f'https://map.naver.com/search?query={search_query}'
 driver.get(search_url)
 
 # 가게 정보를 최대 20개까지만 수집하도록 설정
-max_stores = 10
+max_stores = 3
 store_count = 0
 
 # geopy 설정
-geolocator = Nominatim(user_agent="geoapiExercises")
+geolocator = Nominatim(user_agent="ccpick")
+
+store_data = []
+existing_stores = set()  # 중복 체크를 위한 집합
+
+# CSV 파일 쓰기 함수 정의
+
+
+def write_to_csv(store_info):
+    with open('음식점_data.csv', 'a', newline='', encoding='utf-8') as csvfile:
+        fieldnames = store_info.keys()  # 키를 필드 이름으로 사용
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        # CSV 파일이 비어 있을 경우 헤더를 작성
+        if csvfile.tell() == 0:
+            writer.writeheader()
+        writer.writerow(store_info)  # 데이터를 작성
+
 
 while store_count < max_stores:
     switch_left(driver)
@@ -80,7 +98,7 @@ while store_count < max_stores:
         try:
             # 가게 이름, 카테고리, 주소, 평점 수집
             store_name = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[1]/div[1]/span[1]').text
-            category = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[1]/div[1]/span[2]').text
+            type = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[1]/div[1]/span[2]').text
             address = driver.find_element(By.XPATH, '//span[@class="LDgIH"]').text
             rating = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[2]/span[1]').text
 
@@ -109,31 +127,23 @@ while store_count < max_stores:
                 if '우편번호' in line and i + 1 < len(lines):
                     postal_code = lines[i + 1].strip().replace("복사", "").strip()
 
-            # 주소에서 층 정보 등 불필요한 부분 제거
-            clean_address = re.sub(r'\d+\.\d*층', '', address).strip()
+            print(f"카테고리: {search_query}, 가게 이름: {store_name}, 종류: {type}, 도로명: {address}, 지번: {lot_address}, 우편번호: {postal_code}")
 
-            # 주소 중에서 "서울 중구 서소문로 116" 형식만 남기기
-            clean_address_match = re.search(r'^(서울\s[가-힣]+)\s(.*?)(\d+)', clean_address)
-            if clean_address_match:
-                clean_address = f"{clean_address_match.group(1)} {clean_address_match.group(2)}{clean_address_match.group(3)}"
-            else:
-                clean_address = address
+            # 주소를 geocode하여 위도와 경도를 가져오는 로직
+            location_by_lot = None  # 초기화
+            try:
+                location_by_lot = geolocator.geocode(lot_address)
+                if location_by_lot:
+                    latitude = location_by_lot.latitude
+                    longitude = location_by_lot.longitude
+                    print(f"위도: {latitude}, 경도: {longitude}")
+                else:
+                    print("주소를 찾을 수 없습니다.")
+            except Exception as e:
+                print(f"지오코딩 오류 발생: {e}")
 
-            print(f"가게 이름: {store_name}, 카테고리: {category}, 도로명: {clean_address}, 지번: {lot_address}, 우편번호: {postal_code}")
-
-            # 도로명 주소로 지오코딩 시도
-            location_by_address = geolocator.geocode(clean_address)
-            if location_by_address:
-                print(f"도로명 주소로 찾은 위도: {location_by_address.latitude}, 경도: {location_by_address.longitude}")
-            else:
-                print("도로명 주소로 위도/경도 정보를 찾을 수 없습니다.")
-
-            # 지번으로 지오코딩 시도
-            location_by_lot = geolocator.geocode(lot_address)
-            if location_by_lot:
-                print(f"지번으로 찾은 위도: {location_by_lot.latitude}, 경도: {location_by_lot.longitude}")
-            else:
-                print("지번으로 위도/경도 정보를 찾을 수 없습니다.")
+            # 요청 사이에 대기 시간 추가
+            sleep(1)
 
             # 가게 사진 조회 (최대 3개)
             body_element2 = WebDriverWait(driver, 10).until(
@@ -167,20 +177,17 @@ while store_count < max_stores:
 
                     for line in lines:
                         line = line.strip()  # 공백 제거
-                        if line in ["토", "일", "월", "화", "수", "목", "금"]:  # 요일 체크
-                            current_day = line  # 현재 요일 저장
-                            formatted_hours[current_day] = []  # 새로운 요일 추가
-                        elif current_day:  # 현재 요일이 설정된 경우
-                            formatted_hours[current_day].append(line)  # 요일에 영업시간 추가
+                        if line in ["토", "일", "월", "화", "수", "목", "금"]:  # 요일 확인
+                            current_day = line
+                        else:
+                            formatted_hours[current_day] = line  # 요일과 영업시간 매핑
 
-                    print("가게 영업 시간:")
                     for day, hours in formatted_hours.items():
-                        print(f"{day}: {' | '.join(hours)}")  # 요일별 영업시간 출력
+                        print(f"{day}: {hours}")
                 else:
                     print("영업시간 정보를 찾을 수 없습니다.")
-
             except Exception as e:
-                print("가게 영업 시간 크롤링 실패:", e)
+                print(f"영업시간 오류: {e}")
 
             # 메뉴 정보 추가 (메뉴 섹션에서 메뉴와 가격 추출)
             try:
@@ -190,20 +197,27 @@ while store_count < max_stores:
                 menu_button.click()
                 sleep(1.5)  # 메뉴 정보 로드를 기다리기 위해 약간의 대기
 
-                # 기존 방식으로 메뉴 이름, 설명, 가격 추출
+                # 초기 메뉴 수집 시도
                 menu_items = driver.find_elements(By.CLASS_NAME, 'lPzHi')  # 메뉴 이름
                 menu_info = driver.find_elements(By.CLASS_NAME, 'kPogF')  # 메뉴 설명
                 menu_prices = driver.find_elements(By.TAG_NAME, 'em')  # 메뉴 가격
 
-                # 추가: 예외 케이스 처리 (div, span 태그 사용)
-                if not menu_items:  # 기존 방식으로 메뉴를 찾지 못했을 경우
-                    menu_items = driver.find_elements(By.CSS_SELECTOR, 'div.tit')  # 메뉴명
-                    menu_info = driver.find_elements(By.CSS_SELECTOR, 'span.detail_txt')  # 메뉴 설명
-                    menu_prices = driver.find_elements(By.CSS_SELECTOR, 'div.price')  # 메뉴 가격
+                # 메뉴 정보를 리스트에 추가
+                menu_list = []
 
-                # 메뉴 정보 출력 (최대 10개)
-                for name, info, price in zip(menu_items[:10], menu_info[:10], menu_prices[:10]):
-                    print(f"메뉴: {name.text}, 설명: {info.text}, 가격: {price.text}")
+                # 기존 방식으로 수집한 메뉴가 없을 경우 대체 방법으로 시도
+                if not menu_items:
+                    menu_items = driver.find_elements(By.CSS_SELECTOR, 'div.tit')  # 대체 메뉴명
+                    menu_info = driver.find_elements(By.CSS_SELECTOR, 'span.detail_txt')  # 대체 메뉴 설명
+                    menu_prices = driver.find_elements(By.CSS_SELECTOR, 'div.price')  # 대체 메뉴 가격
+
+                # 각 방식으로 수집한 메뉴 정보를 하나의 리스트에 통합
+                for item, info, price in zip(menu_items, menu_info, menu_prices):
+                    menu_entry = f"{item.text}: {info.text} ({price.text})"  # 각 항목의 텍스트를 사용
+                    menu_list.append(menu_entry.strip())  # 공백 제거 후 리스트에 추가
+
+                # 메뉴 정보를 줄바꿈으로 구분하여 저장
+                menu_str = '\n'.join(menu_list) if menu_list else '정보 없음'
 
             except Exception as e:
                 print("메뉴 정보 가져오기 실패:", e)
@@ -211,28 +225,53 @@ while store_count < max_stores:
             try:
                 # 방문자 리뷰 버튼 클릭
                 review_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, '//span[@class="veBoZ" and contains(text(), "리뷰")or @class="txt" and contains(text(), "리뷰")]'))
+                    EC.element_to_be_clickable((By.XPATH, '//span[@class="veBoZ" and contains(text(), "리뷰") or @class="txt" and contains(text(), "리뷰")]'))
                 )
                 review_button.click()
                 sleep(1.5)  # 리뷰 정보 로드를 기다리기 위해 약간의 대기
 
-                reviews = driver.find_elements(By.CLASS_NAME, 'pui__xtsQN-')  # 'pui__xtsQN-' 클래스를 가진 리뷰 항목 찾기
+                # 리뷰 수집
+                reviews_elements = driver.find_elements(By.CLASS_NAME, 'pui__xtsQN-')  # 'pui__xtsQN-' 클래스를 가진 리뷰 항목 찾기
 
-                # 최대 3개의 리뷰 출력
-                for review in reviews[:3]:  # 리뷰 리스트에서 최대 10개 가져오기
-                    print(f"리뷰: {review.text}")  # 리뷰 내용 출력
+                # 최대 3개의 리뷰를 수집하여 리스트에 추가
+                reviews = []
+                for review in reviews_elements[:3]:  # 리뷰 리스트에서 최대 3개 가져오기
+                    review_text = review.text
+                    reviews.append(review_text.strip())  # 리뷰 내용을 리스트에 추가
+                    print(f"리뷰: {review_text}")  # 리뷰 내용 출력
 
             except Exception as e:
                 print("리뷰 정보 가져오기 실패:", e)
 
+
+
+            # 중복 확인 후 데이터 저장
+            if store_name not in existing_stores:
+                existing_stores.add(store_name)  # 가게 이름을 집합에 추가
+                store_info = {
+                    "category": search_query,
+                    "store_name": store_name,
+                    "type": type,
+                    "address": address,
+                    "lot_address": lot_address,
+                    "postal_code": postal_code,
+                    "rating": rating,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "images": ', '.join(images[:3]),
+                    "hours": hours_text if 'hours_text' in locals() and hours_text else '정보 없음',  # 
+                    "menu": menu_str,# 메뉴 정보 추가
+                    "reviews": '; '.join(reviews) if reviews else '정보 없음'  # 리뷰 정보 추가
+                }
+                write_to_csv(store_info)  # CSV 파일에 저장
+            else:
+                print(f"중복된 가게: {store_name}를 건너뜁니다.")
+
         except Exception as e:
-            print(f"세부 정보 가져오기 오류: {e}")
+            print(f"가게 정보를 가져오는 중 오류 발생: {e}")
+        finally:
+            driver.switch_to.default_content()  # 기본 프레임으로 전환
+            sleep(1)  # 다음 가게 클릭 전 잠시 대기
 
-        switch_left(driver)
-
-    # 스크롤 가능한 요소 내에서 스크롤 시도
-    driver.execute_script("arguments[0].scrollTop += 600;", scrollable_element)
-    sleep(1)  # 동적 콘텐츠 로드 시간에 따라 조절
-
-# 드라이버 종료
+# 브라우저 종료
 driver.quit()
