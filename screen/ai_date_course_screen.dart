@@ -50,58 +50,53 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
     });
   }
 
+  // 전체 화면 지도 표시 메서드 정의
   void _showAddressInput() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.black54,
-          child: Container(
-            height: 400,
-            child: Column(
-              children: [
-                Expanded(
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: _selectedLatLng,
-                      zoom: 12.0,
-                    ),
-                    onTap: (LatLng latLng) {
-                      setState(() {
-                        _selectedLatLng = latLng;
-                      });
-                    },
-                    markers: {
-                      Marker(
-                        markerId: MarkerId('selected-location'),
-                        position: _selectedLatLng,
-                        draggable: true,
-                        onDragEnd: (LatLng latLng) {
-                          setState(() {
-                            _selectedLatLng = latLng;
-                          });
-                        },
-                      ),
-                    },
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedAddress = '위도: ${_selectedLatLng.latitude}, 경도: ${_selectedLatLng.longitude}';
-                    });
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFB9EF45),
-                  ),
-                  child: Text('위치 선택'),
-                ),
-              ],
-            ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('위치 선택'),
+            backgroundColor: Colors.black54,
           ),
-        );
-      },
+          body: GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _selectedLatLng,
+              zoom: 12.0,
+            ),
+            onTap: (LatLng latLng) {
+              setState(() {
+                _selectedLatLng = latLng;
+              });
+            },
+            markers: {
+              Marker(
+                markerId: MarkerId('selected-location'),
+                position: _selectedLatLng,
+                draggable: true,
+                onDragEnd: (LatLng latLng) {
+                  setState(() {
+                    _selectedLatLng = latLng;
+                  });
+                },
+              ),
+            },
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              setState(() {
+                _selectedAddress =
+                    '위도: ${_selectedLatLng.latitude}, 경도: ${_selectedLatLng.longitude}';
+              });
+              Navigator.pop(context);
+            },
+            label: Text('위치 선택'),
+            icon: Icon(Icons.check),
+            backgroundColor: Color(0xFFB9EF45),
+          ),
+        ),
+      ),
     );
   }
 
@@ -143,13 +138,14 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
                             _selectedAddress == null
                                 ? Text('추천받고 싶은 지역을 선택해주세요.')
                                 : Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(_selectedAddress!),
-                            ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8.0, vertical: 4.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade300,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(_selectedAddress!),
+                                  ),
                             ElevatedButton(
                               onPressed: _showAddressInput,
                               style: ElevatedButton.styleFrom(
@@ -251,14 +247,14 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
             '반경(도보 기준)',
             '약 ${_distanceValue.toInt()}분(${(_distanceValue * 70).toInt()}m)',
             _distanceValue,
-                (value) => setState(() => _distanceValue = value),
+            (value) => setState(() => _distanceValue = value),
           ),
           SizedBox(height: 10),
           _buildSliderRow(
             '예산(1인)',
             '${_budgetValue.toInt()}만원이내',
             _budgetValue,
-                (value) => setState(() => _budgetValue = value),
+            (value) => setState(() => _budgetValue = value),
           ),
           SizedBox(height: 10),
           ElevatedButton(
