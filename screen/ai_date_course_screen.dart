@@ -14,11 +14,24 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
   late List<int?> _selectedImages;
   String? _selectedAddress;
   LatLng _selectedLatLng = LatLng(37.5665, 126.9780); // 서울 시청 기준 초기값 설정
+  Set<Marker> _markers = {}; // 마커를 저장할 Set
 
   @override
   void initState() {
     super.initState();
     _selectedImages = List.generate(_selectedOptions.length, (_) => null);
+    _markers.add(
+      Marker(
+        markerId: MarkerId('selected-location'),
+        position: _selectedLatLng,
+        draggable: true,
+        onDragEnd: (LatLng latLng) {
+          setState(() {
+            _selectedLatLng = latLng;
+          });
+        },
+      ),
+    );
   }
 
   // 옵션 추가 메서드 정의
@@ -68,20 +81,22 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
             onTap: (LatLng latLng) {
               setState(() {
                 _selectedLatLng = latLng;
+                _markers.clear(); // 기존 마커 제거
+                _markers.add(
+                  Marker(
+                    markerId: MarkerId('selected-location'),
+                    position: latLng,
+                    draggable: true,
+                    onDragEnd: (LatLng newLatLng) {
+                      setState(() {
+                        _selectedLatLng = newLatLng;
+                      });
+                    },
+                  ),
+                );
               });
             },
-            markers: {
-              Marker(
-                markerId: MarkerId('selected-location'),
-                position: _selectedLatLng,
-                draggable: true,
-                onDragEnd: (LatLng latLng) {
-                  setState(() {
-                    _selectedLatLng = latLng;
-                  });
-                },
-              ),
-            },
+            markers: _markers,
           ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
