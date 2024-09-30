@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지
+import 'package:image_picker/image_picker.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -26,7 +26,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _changeProfileImage() async {
-    // 프로필 사진 변경 기능 추가
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
@@ -45,13 +44,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
           '내 프로필',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
@@ -73,6 +75,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Stack(
               alignment: Alignment.center,
@@ -87,11 +90,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Positioned(
                   bottom: 0,
                   right: 10,
-                  child: FloatingActionButton(
-                    mini: true,
-                    backgroundColor: Colors.white,
-                    onPressed: _changeProfileImage, // 프로필 사진 변경
-                    child: Icon(Icons.camera_alt, color: Colors.grey[700]),
+                  child: GestureDetector(
+                    onTap: _changeProfileImage,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 5,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.camera_alt,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -111,61 +129,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             SizedBox(height: 20),
-            Card(
-              margin: EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: ListTile(
-                leading: Icon(Icons.edit, color: Colors.grey[700]),
-                title: Text('프로필 편집'),
-                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
-                onTap: () {
-                  // 프로필 편집 화면으로 이동
-                },
-              ),
-            ),
-            Card(
-              margin: EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: ListTile(
-                leading: Icon(Icons.help_outline, color: Colors.grey[700]),
-                title: Text('도움말 및 지원'),
-                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
-                onTap: () {
-                  // 도움말 화면으로 이동
-                },
-              ),
-            ),
-            Card(
-              margin: EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: ListTile(
-                leading: Icon(Icons.notifications_outlined, color: Colors.grey[700]),
-                title: Text('알림 설정'),
-                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
-                onTap: () {
-                  // 알림 설정 화면으로 이동
-                },
-              ),
-            ),
-            Card(
-              margin: EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: ListTile(
-                leading: Icon(Icons.settings_outlined, color: Colors.grey[700]),
-                title: Text('앱 설정'),
-                trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey[700], size: 16),
-                onTap: () {
-                  // 설정 화면으로 이동
-                },
-              ),
+            Column(
+              children: [
+                _buildProfileOption(
+                  icon: Icons.edit,
+                  title: '프로필 편집',
+                  onTap: () {
+                    // 프로필 편집 화면으로 이동
+                  },
+                ),
+                _buildProfileOption(
+                  icon: Icons.help_outline,
+                  title: '도움말 및 지원',
+                  onTap: () {
+                    // 도움말 화면으로 이동
+                  },
+                ),
+                _buildProfileOption(
+                  icon: Icons.notifications_outlined,
+                  title: '알림 설정',
+                  onTap: () {
+                    // 알림 설정 화면으로 이동
+                  },
+                ),
+                _buildProfileOption(
+                  icon: Icons.settings_outlined,
+                  title: '앱 설정',
+                  onTap: () {
+                    // 설정 화면으로 이동
+                  },
+                ),
+              ],
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _logout, // 로그아웃 기능
+              onPressed: _logout,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
                 padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 3,
               ),
               child: Text(
                 '로그아웃',
@@ -190,6 +195,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'MY',
           ),
         ],
+        selectedItemColor: Colors.redAccent,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+      ),
+    );
+  }
+
+  Widget _buildProfileOption(
+      {required IconData icon, required String title, required VoidCallback onTap}) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 2,
+      child: ListTile(
+        leading: Icon(icon, color: Colors.grey[800]),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.grey[700],
+          size: 16,
+        ),
+        onTap: onTap,
       ),
     );
   }
