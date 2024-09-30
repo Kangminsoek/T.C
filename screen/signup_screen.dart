@@ -154,7 +154,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           controller: _nameController,
                           decoration: InputDecoration(
                             prefixIcon: Icon(Icons.person_outline),
-                            hintText: '이름을 입력해주세요',
+                            hintText: '닉네임을 입력해주세요',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(color: Colors.grey.shade300),
