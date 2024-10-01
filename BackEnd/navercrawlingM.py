@@ -35,12 +35,12 @@ driver = webdriver.Chrome(options=options)
 driver.implicitly_wait(4)
 
 # 네이버 지도 URL로 이동
-search_query = '음식점'
+search_query = '강남역 술집'
 search_url = f'https://map.naver.com/search?query={search_query}'
 driver.get(search_url)
 
 # 가게 정보를 최대 20개까지만 수집하도록 설정
-max_stores = 3
+max_stores = 52
 store_count = 0
 
 # geopy 설정
@@ -49,11 +49,8 @@ geolocator = Nominatim(user_agent="ccpick")
 store_data = []
 existing_stores = set()  # 중복 체크를 위한 집합
 
-# CSV 파일 쓰기 함수 정의
-
-
 def write_to_csv(store_info):
-    with open('음식점_data.csv', 'a', newline='', encoding='utf-8') as csvfile:
+    with open('술집_data.csv', 'a', newline='', encoding='utf-8') as csvfile:
         fieldnames = store_info.keys()  # 키를 필드 이름으로 사용
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -142,8 +139,6 @@ while store_count < max_stores:
             except Exception as e:
                 print(f"지오코딩 오류 발생: {e}")
 
-            # 요청 사이에 대기 시간 추가
-            sleep(1)
 
             # 가게 사진 조회 (최대 3개)
             body_element2 = WebDriverWait(driver, 10).until(
@@ -177,17 +172,20 @@ while store_count < max_stores:
 
                     for line in lines:
                         line = line.strip()  # 공백 제거
-                        if line in ["토", "일", "월", "화", "수", "목", "금"]:  # 요일 확인
-                            current_day = line
-                        else:
-                            formatted_hours[current_day] = line  # 요일과 영업시간 매핑
+                        if line in ["토", "일", "월", "화", "수", "목", "금"]:  # 요일 체크
+                            current_day = line  # 현재 요일 저장
+                            formatted_hours[current_day] = []  # 새로운 요일 추가
+                        elif current_day:  # 현재 요일이 설정된 경우
+                            formatted_hours[current_day].append(line)  # 요일에 영업시간 추가
 
+                    print("가게 영업 시간:")
                     for day, hours in formatted_hours.items():
-                        print(f"{day}: {hours}")
+                        print(f"{day}: {' | '.join(hours)}")  # 요일별 영업시간 출력
                 else:
                     print("영업시간 정보를 찾을 수 없습니다.")
+
             except Exception as e:
-                print(f"영업시간 오류: {e}")
+                print("가게 영업 시간 크롤링 실패:", e)
 
             # 메뉴 정보 추가 (메뉴 섹션에서 메뉴와 가격 추출)
             try:
@@ -243,8 +241,6 @@ while store_count < max_stores:
             except Exception as e:
                 print("리뷰 정보 가져오기 실패:", e)
 
-
-
             # 중복 확인 후 데이터 저장
             if store_name not in existing_stores:
                 existing_stores.add(store_name)  # 가게 이름을 집합에 추가
@@ -268,10 +264,13 @@ while store_count < max_stores:
                 print(f"중복된 가게: {store_name}를 건너뜁니다.")
 
         except Exception as e:
-            print(f"가게 정보를 가져오는 중 오류 발생: {e}")
-        finally:
-            driver.switch_to.default_content()  # 기본 프레임으로 전환
-            sleep(1)  # 다음 가게 클릭 전 잠시 대기
+            print(f"세부 정보 가져오기 오류: {e}")
 
-# 브라우저 종료
+        switch_left(driver)
+
+    # 스크롤 가능한 요소 내에서 스크롤 시도
+    driver.execute_script("arguments[0].scrollTop += 600;", scrollable_element)
+    sleep(1)  # 동적 콘텐츠 로드 시간에 따라 조절
+
+# 드라이버 종료
 driver.quit()
