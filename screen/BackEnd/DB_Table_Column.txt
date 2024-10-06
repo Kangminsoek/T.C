@@ -1,0 +1,196 @@
+-- 사용자 테이블
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,               -- 사용자 ID
+    email VARCHAR(255) UNIQUE,                -- 이메일 (Firebase Auth)
+    username VARCHAR(255),                    -- 사용자 이름
+    google_id VARCHAR(255) UNIQUE,            -- Google ID
+    kakao_id VARCHAR(255) UNIQUE,             -- Kakao ID
+    naver_id VARCHAR(255) UNIQUE,             -- Naver ID
+    password_hash TEXT,                       -- 암호화된 비밀번호 (Firebase Auth 사용 시)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 계정 생성일
+);
+
+-- 데이트 옵션 테이블
+CREATE TABLE date_options (
+    option_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+-- 사용자 선택 테이블
+CREATE TABLE user_selections (
+    selection_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    distance INT NOT NULL,
+    budget INT NOT NULL,
+    address VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 사용자 선택과 데이트 옵션의 관계 테이블
+CREATE TABLE selection_options (
+    id SERIAL PRIMARY KEY,
+    selection_id INT REFERENCES user_selections(selection_id) ON DELETE CASCADE,
+    option_id INT REFERENCES date_options(option_id)
+);
+
+-- 추천 데이트 코스 테이블
+CREATE TABLE recommended_courses (
+    course_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id),
+    selection_id INT REFERENCES user_selections(selection_id),
+    course_details JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 카테고리 테이블
+CREATE TABLE categories (
+    category_id SERIAL PRIMARY KEY,  -- 카테고리 ID
+    name VARCHAR(255) NOT NULL,      -- 카테고리 이름 (예: 야외, 실내 등)
+    description TEXT                 -- 카테고리 설명 (선택 사항)
+);
+
+-- 이벤트 테이블
+CREATE TABLE events (
+    event_id SERIAL PRIMARY KEY,     -- 이벤트 ID
+    category_id INT REFERENCES categories(category_id) ON DELETE CASCADE,  -- 카테고리 ID (foreign key from categories)
+    title VARCHAR(255) NOT NULL,     -- 이벤트 제목
+    description TEXT,                -- 이벤트 설명
+    image_path VARCHAR(255),         -- 이벤트 이미지 경로
+    date DATE,                       -- 이벤트 날짜
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 이벤트 생성일
+);
+
+-- 소셜 로그인 테이블
+CREATE TABLE social_logins (
+    social_login_id SERIAL PRIMARY KEY,       -- 소셜 로그인 ID
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,  -- 사용자 ID
+    provider VARCHAR(50) NOT NULL,            -- 로그인 제공자 (예: google, kakao, naver)
+    provider_user_id VARCHAR(255) NOT NULL,   -- 제공자 사용자 ID
+    access_token TEXT,                        -- 액세스 토큰
+    refresh_token TEXT,                       -- 리프레시 토큰
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 소셜 로그인 정보 저장일
+);
+
+-- 데이트 코스 테이블
+CREATE TABLE date_courses (
+    course_id SERIAL PRIMARY KEY,
+    course_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    address TEXT,
+    options INTEGER[],
+    images INTEGER[],
+    distance DECIMAL(5, 2),
+    budget DECIMAL(5, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+
+-- 데이트 코스와 카테고리의 관계 테이블 (다대다 관계)
+CREATE TABLE course_categories (
+    course_id INT REFERENCES date_courses(course_id) ON DELETE CASCADE,
+    category_id INT REFERENCES categories(category_id) ON DELETE CASCADE,
+    PRIMARY KEY (course_id, category_id)
+);
+
+-- MBTI 정보 테이블
+CREATE TABLE mbti_types (
+    mbti_id SERIAL PRIMARY KEY,
+    mbti_type VARCHAR(4) UNIQUE NOT NULL,
+    설명 TEXT,
+    특성 TEXT
+);
+
+
+-- 데이트 코스와 MBTI의 관계 테이블 (다대다 관계)
+CREATE TABLE course_mbti (
+    course_id INT REFERENCES date_courses(course_id) ON DELETE CASCADE,
+    mbti_id INT REFERENCES mbti_types(mbti_id) ON DELETE CASCADE,
+    PRIMARY KEY (course_id, mbti_id)
+);
+
+-- 사용자 선호 테이블
+CREATE TABLE user_preferences (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    preferred_date_course_ids INTEGER[] -- 사용자가 선호하는 데이트 코스 ID 배열
+);
+
+-- MBTI 프로필 테이블
+CREATE TABLE mbti_profiles (
+    id SERIAL PRIMARY KEY,
+    mbti_type VARCHAR(4) UNIQUE NOT NULL,
+    recommended_course_ids INTEGER[] -- 추천 코스 ID 배열
+);
+
+-- 사용자 프로필 테이블
+CREATE TABLE user_profiles (
+    profile_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    bio TEXT,
+    mbti_id INT REFERENCES mbti_types(mbti_id),
+    profile_picture_url VARCHAR(255)
+);
+
+-- 사용자와 데이트 코스 관계 테이블 (즐겨찾기)
+CREATE TABLE user_courses (
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    course_id INT REFERENCES date_courses(course_id) ON DELETE CASCADE,
+    is_favorite BOOLEAN DEFAULT FALSE,
+    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, course_id)
+);
+CREATE TABLE restaurants (
+    id SERIAL PRIMARY KEY,
+    category VARCHAR(255),  
+    storename VARCHAR(255),
+    type VARCHAR(100),
+    address VARCHAR(255),
+    lot_address VARCHAR(255),
+    postal_code VARCHAR(10),
+    rating VARCHAR,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6),
+    hours JSONB,
+    menu JSONB,
+    images JSONB,
+    reviews JSONB
+);
+
+CREATE TABLE cafe (
+    id SERIAL PRIMARY KEY,
+    category VARCHAR(255), 
+    storename VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    lot_address VARCHAR(255) NOT NULL,
+    postal_code VARCHAR(10) NOT NULL,
+    rating VARCHAR,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
+    hours TEXT,
+    menu JSONB,
+    images JSONB,
+    reviews JSONB
+);
+
+CREATE TABLE bar (
+    id SERIAL PRIMARY KEY,
+    category VARCHAR(255), 
+    storename VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    lot_address VARCHAR(255) NOT NULL,
+    postal_code VARCHAR(10) NOT NULL,
+    rating VARCHAR,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
+    hours TEXT,
+    menu JSONB,
+    images JSONB,
+    reviews JSONB
+);
+-- 푸시 알림 테이블
+CREATE TABLE push_notifications (
+    notification_id SERIAL PRIMARY KEY,  -- 알림 ID
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,  -- 사용자 ID (users 테이블과 연결)
+    content TEXT NOT NULL,  -- 알림 내용
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 발송일
