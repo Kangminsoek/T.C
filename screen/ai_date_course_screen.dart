@@ -1,4 +1,3 @@
-import 'package:cppick/screen/recommended_course_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -110,21 +109,6 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
             icon: Icon(Icons.check),
             backgroundColor: Color(0xFFB9EF45),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToRecommendedCourseScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecommendedCourseScreen(
-          selectedAddress: _selectedAddress,
-          selectedOptions: _selectedOptions,
-          selectedImages: _selectedImages,
-          distanceValue: _distanceValue,
-          budgetValue: _budgetValue,
         ),
       ),
     );
@@ -273,7 +257,7 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
           ),
           SizedBox(height: 10),
           ElevatedButton(
-            onPressed: _navigateToRecommendedCourseScreen,
+            onPressed: () {}, // 추천 코스로 이동하는 기능을 추가할 수 있습니다.
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFB9EF45),
               padding: EdgeInsets.symmetric(vertical: 15),
@@ -314,4 +298,10 @@ class _AiDateCourseScreenState extends State<AiDateCourseScreen> {
       ],
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: AiDateCourseScreen(),
+  ));
 }
