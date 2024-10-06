@@ -46,7 +46,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.lightGreenAccent,
         elevation: 0,
         title: Text(
           '내 프로필',
@@ -95,7 +95,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
+                        color: Colors.lightGreenAccent,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
@@ -107,7 +107,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       padding: EdgeInsets.all(8.0),
                       child: Icon(
                         Icons.camera_alt,
-                        color: Colors.grey[700],
+                        color: Colors.black,
                       ),
                     ),
                   ),
@@ -126,6 +126,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: '닉네임을 입력하세요',
+                hintStyle: TextStyle(color: Colors.grey),
               ),
             ),
             SizedBox(height: 20),
@@ -165,7 +166,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ElevatedButton(
               onPressed: _logout,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
+                backgroundColor: Colors.lightGreenAccent,
                 padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -174,7 +175,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
               child: Text(
                 '로그아웃',
-                style: TextStyle(fontSize: 18, color: Colors.white),
+                style: TextStyle(fontSize: 18, color: Colors.black),
               ),
             ),
           ],
@@ -183,7 +184,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite, color: Colors.redAccent),
+            icon: Icon(Icons.favorite, color: Colors.lightGreenAccent),
             label: 'Pick',
           ),
           BottomNavigationBarItem(
@@ -195,7 +196,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'MY',
           ),
         ],
-        selectedItemColor: Colors.redAccent,
+        selectedItemColor: Colors.lightGreenAccent,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
       ),
@@ -209,7 +210,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 2,
       child: ListTile(
-        leading: Icon(icon, color: Colors.grey[800]),
+        leading: Icon(icon, color: Colors.lightGreenAccent),
         title: Text(
           title,
           style: TextStyle(
