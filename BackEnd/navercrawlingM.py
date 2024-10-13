@@ -42,7 +42,7 @@ search_url = f'https://map.naver.com/search?query={search_query}'
 driver.get(search_url)
 
 # 가게 정보를 최대 20개까지만 수집하도록 설정
-max_stores = 10
+max_stores = 5
 store_count = 0
 
 # geopy 설정
@@ -51,31 +51,28 @@ geolocator = Nominatim(user_agent="ccpick")
 store_data = []
 existing_stores = set()  # 중복 체크를 위한 집합
 
-# CSV 파일 경로 설정
-csv_file_path = "음식점_data.csv"
 
-# CSV 파일에 헤더가 이미 존재하는지 확인 후 추가
 def write_to_csv(store_info):
     # 필드 이름을 딕셔너리의 키로 설정
     fieldnames = [
         "category", "storename", "type", "address", "lot_address", 
         "postal_code", "rating", "latitude", "longitude", 
-        "images", "hours", "menu", "reviews"
+        "images", "hours", "menu"
     ]
+
+    # CSV 파일 경로 설정
+    csv_file_path = "음식점_data.csv"
     
     # 이미 저장된 데이터 확인을 위한 집합
     existing_data = set()
     
-    # 파일이 존재할 경우 기존 데이터를 읽어와서 중복 체크를 위한 데이터셋 생성
     if os.path.isfile(csv_file_path):
         with open(csv_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                # 가게 이름과 주소를 조합하여 고유 키 생성
                 key = (row['storename'], row['address'])
                 existing_data.add(key)
 
-    # 새로 추가하려는 데이터의 고유 키 생성
     new_data_key = (store_info.get("storename", ""), store_info.get("address", ""))
 
     # 중복되지 않으면 데이터를 추가
@@ -98,15 +95,13 @@ def write_to_csv(store_info):
                 "rating": store_info.get("rating", ""),
                 "latitude": store_info.get("latitude", ""),
                 "longitude": store_info.get("longitude", ""),
-                "images": json.dumps(store_info.get("images", []), ensure_ascii=False),
-                "hours": json.dumps(store_info.get("hours", {}), ensure_ascii=False),
-                "menu": json.dumps(store_info.get("menu", []), ensure_ascii=False),
-                "reviews": json.dumps(store_info.get("reviews", []), ensure_ascii=False),
-            })  # 데이터를 작성
+                "images": json.dumps(store_info.get("images", []), ensure_ascii=False),  # JSON으로 변환하여 저장
+                "hours": json.dumps(store_info.get("hours", {}), ensure_ascii=False),     # JSON으로 변환하여 저장
+                "menu": json.dumps(store_info.get("menu", []), ensure_ascii=False),  # 메뉴를 JSON으로 저장
+            })
         print("새 데이터가 성공적으로 추가되었습니다!")
     else:
         print("중복 데이터가 감지되어 추가하지 않았습니다.")
-
 
 while store_count < max_stores:
     switch_left(driver)
@@ -143,21 +138,22 @@ while store_count < max_stores:
 
         try:
             # 가게 이름, 카테고리, 주소, 평점 수집
-            name = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[1]/div[1]/span[1]').text
-            # "톡톡" 단어가 포함되어 있으면 제거
-            storename = name.split("톡톡")[0].strip()  # "톡톡" 앞부분만 추출
-            type = driver.find_element(By.XPATH, '//div[@class="zD5Nm undefined"]/div[1]/div[1]/span[2]').text
+            storename = driver.find_element(By.XPATH, '//span[@class="GHAhO"]').text  # 가게 이름 추출
+            type = driver.find_element(By.XPATH, '//span[@class="lnJFt"]').text  # 가게 종류 추출
             address = driver.find_element(By.XPATH, '//span[@class="LDgIH"]').text
             elements = driver.find_elements(By.XPATH, '//span[@class="PXMot LXIwF"]')
-            if elements:
-                rating = elements[1].text  # 첫 번째 요소의 텍스트 가져오기
-            else:
-                rating = '정보 없음'  # 또는 원하는 기본값
 
+            if elements:
+                rating = elements[-1].text.strip()  # 마지막 요소의 텍스트 가져오기 (별점 뒤에 있는 숫자)
+                # '별점'이 포함된 경우 제거
+                if '별점' in rating:
+                    rating = rating.replace('별점', '').strip()
+                else:
+                    rating = '정보 없음'  # 또는 원하는 기본값
 
             # 정보를 포함하는 span을 클릭하고 대기
             code_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//span[@class="_UCia"]'))
+                EC.element_to_be_clickable((By.XPATH, '//span[@class="LDgIH"]'))
             )
             code_button.click()
             sleep(0.2)  # 버튼 클릭 후 페이지 로딩을 기다리는 시간 증가
@@ -180,21 +176,29 @@ while store_count < max_stores:
                 if '우편번호' in line and i + 1 < len(lines):
                     postal_code = lines[i + 1].strip().replace("복사", "").strip()
 
-            print(f"카테고리: {search_query}, 가게 이름: {storename}, 종류: {type}, 도로명: {address}, 지번: {lot_address}, 우편번호: {postal_code}, 평점: {rating}:")
-
-            # 주소를 geocode하여 위도와 경도를 가져오는 로직
+            # 위도와 경도 추출
             location_by_lot = None  # 초기화
             try:
                 location_by_lot = geolocator.geocode(lot_address)
                 if location_by_lot:
                     latitude = location_by_lot.latitude
                     longitude = location_by_lot.longitude
-                    print(f"위도: {latitude}, 경도: {longitude}")
                 else:
-                    print("주소를 찾을 수 없습니다.")
+                    latitude = longitude = '정보 없음'
             except Exception as e:
-                print(f"지오코딩 오류 발생: {e}")
+                latitude = longitude = '지오코딩 오류 발생'
 
+            # 출력 형식 개선
+            print("==============================================")
+            print(f"카테고리: {search_query}")
+            print(f"가게 이름: {storename}")
+            print(f"종류: {type}")
+            print(f"도로명: {address}")
+            print(f"지번: {lot_address}")
+            print(f"우편번호: {postal_code}")
+            print(f"평점: {rating}")
+            print(f"위도: {latitude}, 경도: {longitude}")
+            print("==============================================")
 
             # 가게 사진 조회 (최대 3개)
             body_element2 = WebDriverWait(driver, 10).until(
@@ -208,10 +212,11 @@ while store_count < max_stores:
 
             # 영업시간 조회
             try:
-                button_element = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0"))
+                # 정보를 포함하는 span을 클릭하고 대기
+                code_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, '//span[@class="U7pYf"]'))
                 )
-                driver.execute_script("arguments[0].click();", button_element)  # 버튼 클릭
+                code_button.click()
 
                 # 영업시간을 조회
                 hours_section = WebDriverWait(driver, 10).until(
@@ -220,11 +225,12 @@ while store_count < max_stores:
 
                 # 영업시간 항목 가져오기
                 hours_text = hours_section.text  # 전체 텍스트를 가져옵니다.
-
+                
                 # 영업시간을 포맷팅하여 가독성 있게 출력
+                formatted_hours = {}  # 영업시간 정보를 저장할 딕셔너리 초기화
+
                 if hours_text:
                     lines = hours_text.split("\n")  # 줄 단위로 나누기
-                    formatted_hours = {}
                     current_day = ""
 
                     for line in lines:
@@ -233,16 +239,25 @@ while store_count < max_stores:
                             current_day = line  # 현재 요일 저장
                             formatted_hours[current_day] = []  # 새로운 요일 추가
                         elif current_day:  # 현재 요일이 설정된 경우
-                            formatted_hours[current_day].append(line)  # 요일에 영업시간 추가
+                            formatted_hours[current_day].append(line)
 
+                    # 영업시간 출력
                     print("가게 영업 시간:")
-                    for day, hours in formatted_hours.items():
-                        print(f"{day}: {' | '.join(hours)}")  # 요일별 영업시간 출력
-                else:
-                    print("영업시간 정보를 찾을 수 없습니다.")
-
+                    if formatted_hours:
+                        for day, hours in formatted_hours.items():
+                            print(f"{day}: {' | '.join(hours)}")  # 요일별 영업시간 출력
+                    else:
+                        alternative_info_section = WebDriverWait(driver, 10).until(
+                            EC.visibility_of_element_located((By.CSS_SELECTOR, "span.A_cdD"))  # 대체 정보의 CSS 선택자
+                        )
+                        alternative_info_text = alternative_info_section.text  # 대체 정보를 가져옵니다.
+                        formatted_hours["대체 정보"] = alternative_info_text  # 대체 정보를 딕셔너리에 추가
+                        print("대체 영업시간 정보:", alternative_info_text)
+            
             except Exception as e:
                 print("가게 영업 시간 크롤링 실패:", e)
+
+
 
             # 메뉴 정보 추가 (메뉴 섹션에서 메뉴와 가격 추출)
             try:
@@ -254,55 +269,29 @@ while store_count < max_stores:
 
                 # 메뉴 수집을 위한 다양한 방법 시도
                 menu_items = driver.find_elements(By.CLASS_NAME, 'lPzHi')  # 메뉴 이름
-                menu_info = driver.find_elements(By.CLASS_NAME, 'kPogF')  # 메뉴 설명
                 menu_prices = driver.find_elements(By.TAG_NAME, 'em')  # 메뉴 가격
 
                 # 수집한 메뉴가 없을 경우 대체 방법으로 시도
                 if not menu_items:
                     menu_items = driver.find_elements(By.CSS_SELECTOR, 'div.tit')  # 대체 메뉴명
-                    menu_info = driver.find_elements(By.CSS_SELECTOR, 'span.detail_txt')  # 대체 메뉴 설명
                     menu_prices = driver.find_elements(By.CSS_SELECTOR, 'div.price')  # 대체 메뉴 가격
 
                 # 수집한 메뉴가 없을 경우 마지막 대체 방법으로 시도
                 if not menu_items:
                     menu_items = driver.find_elements(By.CSS_SELECTOR, 'div.meDTN')  # 메뉴명
-                    menu_info = driver.find_elements(By.CSS_SELECTOR, 'div.kPogF')  # 메뉴 설명
                     menu_prices = driver.find_elements(By.CSS_SELECTOR, 'div.GXS1X')  # 메뉴 가격
 
                 # 각 방식으로 수집한 메뉴 정보를 하나의 리스트에 통합
                 menu_list = []
-                for item, info, price in zip(menu_items[:4], menu_info[:4], menu_prices[:4]):  # 최대 4개 메뉴만 수집
-                    menu_entry = f"{item.text}: {info.text} ({price.text})"  # 각 항목의 텍스트를 사용
+                for item, price in zip(menu_items[:4], menu_prices[:4]):  # 최대 4개 메뉴만 수집
+                    menu_entry = f"{item.text} ({price.text})"  # 메뉴명과 가격만 사용
                     menu_list.append(menu_entry.strip())  # 공백 제거 후 리스트에 추가
 
                 # 메뉴 정보를 줄바꿈으로 구분하여 저장
                 menu_str = '\n'.join(menu_list) if menu_list else '정보 없음'
 
-
             except Exception as e:
                 print("메뉴 정보 가져오기 실패:", e)
-
-
-            try:
-                # 방문자 리뷰 버튼 클릭
-                review_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, '//span[@class="veBoZ" and contains(text(), "리뷰") or @class="txt" and contains(text(), "리뷰")]'))
-                )
-                review_button.click()
-                sleep(0.2)  # 리뷰 정보 로드를 기다리기 위해 약간의 대기
-
-                # 리뷰 수집
-                reviews_elements = driver.find_elements(By.CLASS_NAME, 'pui__xtsQN-')  # 'pui__xtsQN-' 클래스를 가진 리뷰 항목 찾기
-
-                # 최대 3개의 리뷰를 수집하여 리스트에 추가
-                reviews = []
-                for review in reviews_elements[:1]:  # 리뷰 리스트에서 최대 3개 가져오기
-                    review_text = review.text
-                    reviews.append(review_text.strip())  # 리뷰 내용을 리스트에 추가
-                    
-
-            except Exception as e:
-                print("리뷰 정보 가져오기 실패:", e)
 
             # 중복 확인 후 데이터 저장
             normalized_name = storename.strip().lower()  # 가게 이름 정규화 (공백 제거 및 소문자 변환)
@@ -323,7 +312,6 @@ while store_count < max_stores:
                     "images": images,
                     "hours": formatted_hours if formatted_hours else {},
                     "menu": menu_str,
-                    "reviews": reviews if reviews else [],
                 }
                 write_to_csv(store_info)  # CSV 파일에 저장
             else:
