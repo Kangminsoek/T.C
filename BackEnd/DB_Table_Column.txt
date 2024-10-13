@@ -152,7 +152,6 @@ CREATE TABLE restaurants (
     hours JSONB,
     menu JSONB,
     images JSONB,
-    reviews JSONB
 );
 
 CREATE TABLE cafe (
@@ -169,7 +168,6 @@ CREATE TABLE cafe (
     hours TEXT,
     menu JSONB,
     images JSONB,
-    reviews JSONB
 );
 
 CREATE TABLE bar (
@@ -186,7 +184,6 @@ CREATE TABLE bar (
     hours TEXT,
     menu JSONB,
     images JSONB,
-    reviews JSONB
 );
 -- 푸시 알림 테이블
 CREATE TABLE push_notifications (
