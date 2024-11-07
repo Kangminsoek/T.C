@@ -34,22 +34,26 @@ options.add_argument('window-size=1380,900')
 driver = webdriver.Chrome(options=options)
 
 # 대기 시간 설정
-driver.implicitly_wait(1.5)
+driver.implicitly_wait(4.5)
 
 # 네이버 지도 URL로 이동
-search_query = '강남역 음식집'
+search_query = '강남역 술집'
 search_url = f'https://map.naver.com/search?query={search_query}'
 driver.get(search_url)
 
 # 가게 정보를 최대 20개까지만 수집하도록 설정
-max_stores = 5
+max_stores = 45
 store_count = 0
 
 # geopy 설정
-geolocator = Nominatim(user_agent="ccpick")
+geolocator = Nominatim(user_agent="ccpic@k")
 
 store_data = []
 existing_stores = set()  # 중복 체크를 위한 집합
+
+# 특수 문자를 제거하는 함수
+def clean_text(text):
+    return re.sub(r'[^\w\s]', '', text)
 
 
 def write_to_csv(store_info):
@@ -61,7 +65,7 @@ def write_to_csv(store_info):
     ]
 
     # CSV 파일 경로 설정
-    csv_file_path = "음식점_data.csv"
+    csv_file_path = "술집_data2.csv"
     
     # 이미 저장된 데이터 확인을 위한 집합
     existing_data = set()
@@ -144,19 +148,20 @@ while store_count < max_stores:
             elements = driver.find_elements(By.XPATH, '//span[@class="PXMot LXIwF"]')
 
             if elements:
-                rating = elements[-1].text.strip()  # 마지막 요소의 텍스트 가져오기 (별점 뒤에 있는 숫자)
-                # '별점'이 포함된 경우 제거
+                rating = elements[-1].text.strip() 
                 if '별점' in rating:
                     rating = rating.replace('별점', '').strip()
                 else:
-                    rating = '정보 없음'  # 또는 원하는 기본값
+                    rating = '0.0'  
+            else:
+                rating = '0.0'  
 
             # 정보를 포함하는 span을 클릭하고 대기
             code_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, '//span[@class="LDgIH"]'))
             )
             code_button.click()
-            sleep(0.2)  # 버튼 클릭 후 페이지 로딩을 기다리는 시간 증가
+            sleep(0.5)  # 버튼 클릭 후 페이지 로딩을 기다리는 시간 증가
 
             # div.Y31Sf 안의 텍스트 수집
             y31sf_text = driver.find_element(By.XPATH, '//div[@class="Y31Sf"]').text.strip()
@@ -258,14 +263,13 @@ while store_count < max_stores:
                 print("가게 영업 시간 크롤링 실패:", e)
 
 
-
             # 메뉴 정보 추가 (메뉴 섹션에서 메뉴와 가격 추출)
             try:
                 menu_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, '//span[@class="veBoZ" and contains(text(), "메뉴") or @class="txt" and contains(text(), "메뉴")]'))
                 )
                 menu_button.click()
-                sleep(0.2)  # 메뉴 정보 로드를 기다리기 위해 약간의 대기
+                sleep(0.6)  # 메뉴 정보 로드를 기다리기 위해 약간의 대기
 
                 # 메뉴 수집을 위한 다양한 방법 시도
                 menu_items = driver.find_elements(By.CLASS_NAME, 'lPzHi')  # 메뉴 이름
@@ -311,7 +315,7 @@ while store_count < max_stores:
                     "longitude": float(longitude),
                     "images": images,
                     "hours": formatted_hours if formatted_hours else {},
-                    "menu": menu_str,
+                    "menu": [clean_text(item) for item in menu_list],  # 특수 문자 제거한 메뉴 리스트
                 }
                 write_to_csv(store_info)  # CSV 파일에 저장
             else:
@@ -321,11 +325,55 @@ while store_count < max_stores:
         except Exception as e:
             print(f"세부 정보 가져오기 오류: {e}")
 
+        driver.back()
         switch_left(driver)
 
-    # 스크롤 가능한 요소 내에서 스크롤 시도
-    driver.execute_script("arguments[0].scrollTop += 600;", scrollable_element)
-    sleep(0.1)  # 동적 콘텐츠 로드 시간에 따라 조절
+        # 페이지가 로드될 시간을 충분히 대기
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="_pcmap_list_scroll_container"]')))
+
+        # 스크롤 가능한 요소 내에서 스크롤 시도
+        try:
+            # 현재 스크롤 위치 저장
+            last_scroll_position = driver.execute_script("return arguments[0].scrollTop;", scrollable_element)
+            
+            # 스크롤을 시도
+            driver.execute_script("arguments[0].scrollTop += 600;", scrollable_element)
+            sleep(1)  # 동적 콘텐츠 로드 시간에 따라 조절
+            
+            # 새로운 스크롤 위치 저장
+            new_scroll_position = driver.execute_script("return arguments[0].scrollTop;", scrollable_element)
+
+            # 스크롤이 진행되지 않는 경우 다음 페이지로 넘어감
+            if last_scroll_position == new_scroll_position:
+                print("더 이상 스크롤할 수 없습니다. 다음 페이지로 이동합니다.")
+                try:
+                    next_page_button = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, '//a[@class="eUTV2" and contains(., "다음페이지")]'))
+                    )
+                    next_page_button.click()  # 다음 페이지 클릭
+                    print("다음 페이지로 이동합니다.")
+                    
+                    # 페이지 전환 후 반드시 프레임 전환 및 요소 로드 대기
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="_pcmap_list_scroll_container"]//li[1]')))
+                    
+                    # 페이지가 로드된 후 다시 왼쪽 프레임으로 스위치
+                    switch_left(driver)
+                    
+                    # 스크롤 가능한 요소를 다시 로드
+                    scrollable_element = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="_pcmap_list_scroll_container"]'))
+                    )
+                    elements = driver.find_elements(By.XPATH, '//*[@id="_pcmap_list_scroll_container"]//li')
+                    print("새로운 페이지에서 스크롤을 다시 시작합니다.")
+                
+                except Exception as e:
+                    print("다음 페이지로 이동할 수 없습니다:", e)
+                    break  # 더 이상 페이지가 없으면 루프 종료
+            else:
+                print("스크롤이 진행되었습니다.")
+
+        except Exception as e:
+            print(f"스크롤 오류: {e}")
 
 # 드라이버 종료
 driver.quit()
