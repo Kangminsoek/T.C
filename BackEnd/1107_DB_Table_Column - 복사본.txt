@@ -1,0 +1,157 @@
+-- 사용자 테이블
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE,
+    username VARCHAR(255),
+    google_id VARCHAR(255) UNIQUE,
+    kakao_id VARCHAR(255) UNIQUE,
+    naver_id VARCHAR(255) UNIQUE,
+    password_hash TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 이벤트 테이블
+CREATE TABLE events (
+    event_id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,       -- 이벤트 제목
+    description TEXT,                  -- 이벤트 설명
+    image_path VARCHAR(255),           -- 이벤트 이미지 경로
+    date DATE,                         -- 이벤트 날짜
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 이벤트 생성일
+);
+
+-- 소셜 로그인 테이블
+CREATE TABLE social_logins (
+    social_login_id SERIAL PRIMARY KEY,       -- 소셜 로그인 ID
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,  -- 사용자 ID
+    provider VARCHAR(50) NOT NULL,            -- 로그인 제공자 (예: google, kakao, naver)
+    provider_user_id VARCHAR(255) NOT NULL,   -- 제공자 사용자 ID
+    access_token TEXT,                        -- 액세스 토큰
+    refresh_token TEXT,                       -- 리프레시 토큰
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 소셜 로그인 정보 저장일
+);
+
+-- MBTI 정보 테이블
+CREATE TABLE mbti_types (
+    mbti_id SERIAL PRIMARY KEY,
+    mbti_type VARCHAR(4) UNIQUE NOT NULL,
+    설명 TEXT,
+    특성 TEXT
+);
+
+-- MBTI별 장소 추천 테이블
+CREATE TABLE mbti_places (
+    id SERIAL PRIMARY KEY,
+    mbti_id INT REFERENCES mbti_types(mbti_id) ON DELETE CASCADE,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE, -- place 테이블과 연결
+    UNIQUE (mbti_id, place_id)  -- 중복 방지
+);
+
+-- 장소 정보 테이블
+CREATE TABLE place (
+    place_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),           
+    address VARCHAR(255),
+    description TEXT,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
+    image_url VARCHAR(255)             -- 쉼표 추가됨
+);
+
+-- 사용자 프로필 테이블
+CREATE TABLE user_profiles (
+    profile_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    bio TEXT,
+    mbti_id INT REFERENCES mbti_types(mbti_id),
+    profile_picture_url VARCHAR(255)
+);
+
+-- 레스토랑 정보 테이블
+CREATE TABLE restaurants (
+    id SERIAL PRIMARY KEY,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE, -- place와 연결
+    category VARCHAR(255),  
+    storename VARCHAR(255),
+    type VARCHAR(100),
+    address VARCHAR(255),
+    lot_address VARCHAR(255),
+    postal_code VARCHAR(10),
+    rating VARCHAR,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6),
+    hours JSONB,
+    menu JSONB,
+    images JSONB
+);
+
+-- 카페 정보 테이블
+CREATE TABLE cafe (
+    id SERIAL PRIMARY KEY,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE, -- place와 연결
+    category VARCHAR(255), 
+    storename VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    lot_address VARCHAR(255) NOT NULL,
+    postal_code VARCHAR(10) NOT NULL,
+    rating VARCHAR,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
+    hours TEXT,
+    menu JSONB,
+    images JSONB
+);
+
+-- 바 정보 테이블
+CREATE TABLE bar (
+    id SERIAL PRIMARY KEY,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE, -- place와 연결
+    category VARCHAR(255), 
+    storename VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    lot_address VARCHAR(255) NOT NULL,
+    postal_code VARCHAR(10) NOT NULL,
+    rating VARCHAR,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
+    hours TEXT,
+    menu JSONB,
+    images JSONB
+);
+
+
+CREATE TABLE view_place (
+    id SERIAL PRIMARY KEY,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE,  -- place 테이블과 연결
+    category VARCHAR(255),
+    storename VARCHAR(255),
+    type VARCHAR(100),
+    address VARCHAR(255),
+    lot_address VARCHAR(255),
+    postal_code VARCHAR(10),
+    rating VARCHAR,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6),
+    images JSONB,         -- JSON으로 저장된 이미지 URL 리스트
+    hours JSONB           -- JSON으로 저장된 영업시간 정보
+);
+
+
+CREATE TABLE walk_places (
+    id SERIAL PRIMARY KEY,
+    place_id INT REFERENCES place(place_id) ON DELETE CASCADE,  -- place 테이블과 연결
+    category VARCHAR(255),
+    storename VARCHAR(255),
+    type VARCHAR(100),
+    address VARCHAR(255),
+    lot_address VARCHAR(255),
+    postal_code VARCHAR(10),
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6),
+    images JSONB          -- JSON으로 저장된 이미지 URL 리스트
+);
+
+
